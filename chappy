@@ -1,0 +1,50 @@
+// Replace with your Client ID from the Twitch Developer Console
+const TWITCH_CLIENT_ID = 'YOUR_TWITCH_CLIENT_ID'; 
+const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+// Required permissions for Chappy to read chat, listen to bits, and capture clips
+const TWITCH_SCOPES = [
+  'chat:read',
+  'chat:edit',
+  'bits:read',
+  'clips:edit',
+  'channel:read:subscriptions'
+].join(' ');
+
+function connectTwitchAccount() {
+  const twitchAuthUrl = `https://id.twitch.tv/oauth2/authorize` +
+    `?client_id=${TWITCH_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=token` +
+    `&scope=${encodeURIComponent(TWITCH_SCOPES)}`;
+
+  // Redirect streamer to official Twitch login
+  window.location.href = twitchAuthUrl;
+}
+
+// Automatically catch the OAuth token when Twitch redirects back to your app
+window.addEventListener('load', () => {
+  const hash = window.location.hash;
+  if (hash.includes('access_token=')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const token = params.get('access_token');
+    
+    // Validate the token and fetch broadcaster details
+    fetchTwitchProfile(token);
+  }
+});
+
+async function fetchTwitchProfile(token) {
+  const response = await fetch('https://api.twitch.tv/helix/users', {
+    headers: {
+      'Client-ID': TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  const data = await response.json();
+  const user = data.data[0];
+  
+  console.log(`Successfully authenticated as: ${user.display_name} (#${user.login})`);
+  alert(`Connected to Twitch as ${user.display_name}! Chappy is now linked to your channel.`);
+}
